@@ -22,3 +22,6 @@ itk_python_add_test(NAME itkTransformixFilterPythonTest
     ${CMAKE_CURRENT_SOURCE_DIR}/../../test/Input/transformparameters.3DCT_lung.affine.txt
     ${ITK_TEST_OUTPUT_DIR}/itkTransformixFilterPythonTestOutput.mha
     )
+itk_python_add_test(NAME itkTransformixMeshPythonTest
+  COMMAND test_itk_transformix_mesh.py
+    )
