@@ -214,3 +214,39 @@ def transformix_pointset(*args, **kwargs):
 # Satisfy itk package lazy loading
 def transformix_pointset_init_docstring():
     pass
+
+
+def transformix_mesh(mesh, transform_parameter_object, **kwargs):
+    """Transform a mesh using transformix.
+
+    Parameters
+    ----------
+    mesh : itk.Mesh
+        The input mesh whose points will be transformed.
+    transform_parameter_object : itk.ParameterObject or dict or list of dicts
+        The transform parameter object specifying the transformation.
+    **kwargs
+        Additional keyword arguments passed to ``itk.TransformixFilter.New()``.
+
+    Returns
+    -------
+    itk.Mesh
+        The transformed mesh.
+    """
+    if isinstance(transform_parameter_object, (dict, list, tuple)):
+        transform_parameter_object = dict_to_parameter_object(transform_parameter_object)
+
+    Dimension = mesh.GetPointDimension()
+    ImageType = itk.Image[itk.F, Dimension]
+
+    transformix_object = itk.TransformixFilter[ImageType].New(
+        transform_parameter_object=transform_parameter_object, **kwargs
+    )
+    transformix_object.SetInputMesh(mesh)
+    transformix_object.UpdateLargestPossibleRegion()
+    return transformix_object.GetOutputMesh()
+
+
+# Satisfy itk package lazy loading
+def transformix_mesh_init_docstring():
+    pass
