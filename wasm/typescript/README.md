@@ -28,8 +28,6 @@ import {
   writeParameterFiles,
   setPipelinesBaseUrl,
   getPipelinesBaseUrl,
-  setPipelineWorkerUrl,
-  getPipelineWorkerUrl,
 } from "@itk-wasm/elastix"
 ```
 
@@ -39,7 +37,6 @@ import {
 
 ```ts
 async function defaultParameterMap(
-  webWorker: null | Worker,
   transformName: string,
   options: DefaultParameterMapOptions = {}
 ) : Promise<DefaultParameterMapResult>
@@ -51,17 +48,19 @@ async function defaultParameterMap(
 
 **`DefaultParameterMapOptions` interface:**
 
-|        Property       |   Type   | Description                                                  |
-| :-------------------: | :------: | :----------------------------------------------------------- |
-| `numberOfResolutions` | *number* | Number of multiscale registration resolutions.               |
-|   `finalGridSpacing`  | *number* | Final grid spacing in physical units for bspline transforms. |
+|        Property       |             Type            | Description                                                                                                                                           |
+| :-------------------: | :-------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `numberOfResolutions` |           *number*          | Number of multiscale registration resolutions.                                                                                                        |
+|   `finalGridSpacing`  |           *number*          | Final grid spacing in physical units for bspline transforms.                                                                                          |
+|      `webWorker`      | *null or Worker or boolean* | WebWorker for computation. Set to null to create a new worker. Or, pass an existing worker. Or, set to `false` to run in the current thread / worker. |
+|        `noCopy`       |          *boolean*          | When SharedArrayBuffer's are not available, do not copy inputs.                                                                                       |
 
 **`DefaultParameterMapResult` interface:**
 
 |    Property    |       Type       | Description                          |
 | :------------: | :--------------: | :----------------------------------- |
-|  **webWorker** |     *Worker*     | WebWorker used for computation       |
 | `parameterMap` | *JsonCompatible* | Elastix parameter map representation |
+|   `webWorker`  |     *Worker*     | WebWorker used for computation.      |
 
 #### elastix
 
@@ -69,9 +68,7 @@ async function defaultParameterMap(
 
 ```ts
 async function elastix(
-  webWorker: null | Worker,
   parameterObject: JsonCompatible,
-  transform: string,
   options: ElastixOptions = {}
 ) : Promise<ElastixResult>
 ```
@@ -79,25 +76,26 @@ async function elastix(
 |     Parameter     |       Type       | Description                             |
 | :---------------: | :--------------: | :-------------------------------------- |
 | `parameterObject` | *JsonCompatible* | Elastix parameter object representation |
-|    `transform`    |     *string*     | Fixed-to-moving transform file          |
 
 **`ElastixOptions` interface:**
 
-|              Property             |             Type             | Description                                                                                                         |
-| :-------------------------------: | :--------------------------: | :------------------------------------------------------------------------------------------------------------------ |
-|              `fixed`              |            *Image*           | Fixed image                                                                                                         |
-|              `moving`             |            *Image*           | Moving image                                                                                                        |
-|         `initialTransform`        | *string | File | BinaryFile* | Initial transform to apply before registration                                                                      |
-| `initialTransformParameterObject` |       *JsonCompatible*       | Initial elastix transform parameter object to apply before registration. Only provide this or an initial transform. |
+|              Property             |             Type            | Description                                                                                                                                           |
+| :-------------------------------: | :-------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+|              `fixed`              |           *Image*           | Fixed image                                                                                                                                           |
+|              `moving`             |           *Image*           | Moving image                                                                                                                                          |
+|         `initialTransform`        |       *TransformList*       | Initial ITK transform to apply before registration. Only provide this or an initial transform parameter object.                                       |
+| `initialTransformParameterObject` |       *JsonCompatible*      | Initial elastix transform parameter object to apply before registration. Only provide this or an initial transform.                                   |
+|            `webWorker`            | *null or Worker or boolean* | WebWorker for computation. Set to null to create a new worker. Or, pass an existing worker. Or, set to `false` to run in the current thread / worker. |
+|              `noCopy`             |          *boolean*          | When SharedArrayBuffer's are not available, do not copy inputs.                                                                                       |
 
 **`ElastixResult` interface:**
 
 |          Property          |       Type       | Description                                                 |
 | :------------------------: | :--------------: | :---------------------------------------------------------- |
-|        **webWorker**       |     *Worker*     | WebWorker used for computation                              |
 |          `result`          |      *Image*     | Resampled moving image                                      |
-|         `transform`        |   *BinaryFile*   | Fixed-to-moving transform file                              |
+|         `transform`        |  *TransformList* | Fixed-to-moving ITK transform                               |
 | `transformParameterObject` | *JsonCompatible* | Elastix optimized transform parameter object representation |
+|         `webWorker`        |     *Worker*     | WebWorker used for computation.                             |
 
 #### readParameterFiles
 
@@ -105,7 +103,6 @@ async function elastix(
 
 ```ts
 async function readParameterFiles(
-  webWorker: null | Worker,
   options: ReadParameterFilesOptions = { parameterFiles: [] as TextFile[] | File[] | string[], }
 ) : Promise<ReadParameterFilesResult>
 ```
@@ -115,16 +112,18 @@ async function readParameterFiles(
 
 **`ReadParameterFilesOptions` interface:**
 
-|     Property     |               Type               | Description             |
-| :--------------: | :------------------------------: | :---------------------- |
-| `parameterFiles` | *string[] | File[] | TextFile[]* | Elastix parameter files |
+|     Property     |               Type               | Description                                                                                                                                           |
+| :--------------: | :------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parameterFiles` | *string[] | File[] | TextFile[]* | Elastix parameter files                                                                                                                               |
+|    `webWorker`   |    *null or Worker or boolean*   | WebWorker for computation. Set to null to create a new worker. Or, pass an existing worker. Or, set to `false` to run in the current thread / worker. |
+|     `noCopy`     |             *boolean*            | When SharedArrayBuffer's are not available, do not copy inputs.                                                                                       |
 
 **`ReadParameterFilesResult` interface:**
 
 |      Property     |       Type       | Description                             |
 | :---------------: | :--------------: | :-------------------------------------- |
-|   **webWorker**   |     *Worker*     | WebWorker used for computation          |
 | `parameterObject` | *JsonCompatible* | Elastix parameter object representation |
+|    `webWorker`    |     *Worker*     | WebWorker used for computation.         |
 
 #### writeParameterFiles
 
@@ -132,10 +131,9 @@ async function readParameterFiles(
 
 ```ts
 async function writeParameterFiles(
-  webWorker: null | Worker,
   parameterObject: JsonCompatible,
-  parameterFiles: string[]
-
+  parameterFiles: string[],
+  options: WriteParameterFilesOptions = {}
 ) : Promise<WriteParameterFilesResult>
 ```
 
@@ -144,12 +142,19 @@ async function writeParameterFiles(
 | `parameterObject` | *JsonCompatible* | Elastix parameter object representation.                                                                    |
 |  `parameterFiles` |    *string[]*    | Elastix parameter files, must have the same length as the number of parameter maps in the parameter object. |
 
+**`WriteParameterFilesOptions` interface:**
+
+|   Property  |             Type            | Description                                                                                                                                           |
+| :---------: | :-------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `webWorker` | *null or Worker or boolean* | WebWorker for computation. Set to null to create a new worker. Or, pass an existing worker. Or, set to `false` to run in the current thread / worker. |
+|   `noCopy`  |          *boolean*          | When SharedArrayBuffer's are not available, do not copy inputs.                                                                                       |
+
 **`WriteParameterFilesResult` interface:**
 
 |     Property     |     Type     | Description                                                                                                 |
 | :--------------: | :----------: | :---------------------------------------------------------------------------------------------------------- |
-|   **webWorker**  |   *Worker*   | WebWorker used for computation                                                                              |
 | `parameterFiles` | *TextFile[]* | Elastix parameter files, must have the same length as the number of parameter maps in the parameter object. |
+|    `webWorker`   |   *Worker*   | WebWorker used for computation.                                                                             |
 
 #### setPipelinesBaseUrl
 
@@ -169,23 +174,6 @@ function setPipelinesBaseUrl(
 function getPipelinesBaseUrl() : string | URL
 ```
 
-#### setPipelineWorkerUrl
-
-*Set base URL for the itk-wasm pipeline worker script when vendored.*
-
-```ts
-function setPipelineWorkerUrl(
-  baseUrl: string | URL
-) : void
-```
-
-#### getPipelineWorkerUrl
-
-*Get base URL for the itk-wasm pipeline worker script when vendored.*
-
-```ts
-function getPipelineWorkerUrl() : string | URL
-```
 
 ### Node interface
 
@@ -197,10 +185,6 @@ import {
   elastixNode,
   readParameterFilesNode,
   writeParameterFilesNode,
-  setPipelinesBaseUrl,
-  getPipelinesBaseUrl,
-  setPipelineWorkerUrl,
-  getPipelineWorkerUrl,
 } from "@itk-wasm/elastix"
 ```
 
@@ -211,7 +195,7 @@ import {
 ```ts
 async function defaultParameterMapNode(
   transformName: string,
-  options: DefaultParameterMapOptions = {}
+  options: DefaultParameterMapNodeOptions = {}
 ) : Promise<DefaultParameterMapNodeResult>
 ```
 
@@ -239,31 +223,29 @@ async function defaultParameterMapNode(
 ```ts
 async function elastixNode(
   parameterObject: JsonCompatible,
-  transform: string,
-  options: ElastixOptions = {}
+  options: ElastixNodeOptions = {}
 ) : Promise<ElastixNodeResult>
 ```
 
 |     Parameter     |       Type       | Description                             |
 | :---------------: | :--------------: | :-------------------------------------- |
 | `parameterObject` | *JsonCompatible* | Elastix parameter object representation |
-|    `transform`    |     *string*     | Fixed-to-moving transform file          |
 
 **`ElastixNodeOptions` interface:**
 
-|              Property             |             Type             | Description                                                                                                         |
-| :-------------------------------: | :--------------------------: | :------------------------------------------------------------------------------------------------------------------ |
-|              `fixed`              |            *Image*           | Fixed image                                                                                                         |
-|              `moving`             |            *Image*           | Moving image                                                                                                        |
-|         `initialTransform`        | *string | File | BinaryFile* | Initial transform to apply before registration                                                                      |
-| `initialTransformParameterObject` |       *JsonCompatible*       | Initial elastix transform parameter object to apply before registration. Only provide this or an initial transform. |
+|              Property             |       Type       | Description                                                                                                         |
+| :-------------------------------: | :--------------: | :------------------------------------------------------------------------------------------------------------------ |
+|              `fixed`              |      *Image*     | Fixed image                                                                                                         |
+|              `moving`             |      *Image*     | Moving image                                                                                                        |
+|         `initialTransform`        |  *TransformList* | Initial ITK transform to apply before registration. Only provide this or an initial transform parameter object.     |
+| `initialTransformParameterObject` | *JsonCompatible* | Initial elastix transform parameter object to apply before registration. Only provide this or an initial transform. |
 
 **`ElastixNodeResult` interface:**
 
 |          Property          |       Type       | Description                                                 |
 | :------------------------: | :--------------: | :---------------------------------------------------------- |
 |          `result`          |      *Image*     | Resampled moving image                                      |
-|         `transform`        |   *BinaryFile*   | Fixed-to-moving transform file                              |
+|         `transform`        |  *TransformList* | Fixed-to-moving ITK transform                               |
 | `transformParameterObject` | *JsonCompatible* | Elastix optimized transform parameter object representation |
 
 #### readParameterFilesNode
@@ -272,7 +254,7 @@ async function elastixNode(
 
 ```ts
 async function readParameterFilesNode(
-  options: ReadParameterFilesOptions = { parameterFiles: [] as string[], }
+  options: ReadParameterFilesNodeOptions = { parameterFiles: [] as string[], }
 ) : Promise<ReadParameterFilesNodeResult>
 ```
 
@@ -299,7 +281,6 @@ async function readParameterFilesNode(
 async function writeParameterFilesNode(
   parameterObject: JsonCompatible,
   parameterFiles: string[]
-
 ) : Promise<WriteParameterFilesNodeResult>
 ```
 
